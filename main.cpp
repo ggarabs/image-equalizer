@@ -47,7 +47,7 @@ int main(int argc, char** argv){
                 }
         }
 
-        SDL_SaveBMP(black_and_white_image, "output.bmp");
+        SDL_SaveBMP(black_and_white_image, "black_and_white_image.bmp");
 
         SDL_DestroySurface(input_image);
 
