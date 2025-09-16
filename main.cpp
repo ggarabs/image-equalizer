@@ -74,7 +74,7 @@ int main(int argc, char** argv){
         if(!is_grayscale_image(input_image)){
                 output_image = to_grayscale(input_image24);
 
-                SDL_SaveBMP(output_image, "grayscale_image.bmp");
+                SDL_SaveBMP(output_image, "images/grayscale_image.bmp");
 
         } else cout << "Imagem já está em tons de cinza" << endl;
 
