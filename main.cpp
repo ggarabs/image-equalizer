@@ -89,26 +89,46 @@ int main(int argc, char** argv){
 
                 if(!secondary_window) cout << "Erro ao abrir janela secundária" << endl;
 
-                SDL_Surface* secondary_window_surface = SDL_GetWindowSurface(secondary_window);
+                SDL_Renderer* renderer = SDL_CreateRenderer(secondary_window, NULL);
 
-                if(!secondary_window_surface){
-                        cout << SDL_GetError() << endl;
-                }
+
+                const SDL_FRect button = {210, 430, 110, 40};
 
                 bool done = false;
+                bool button_pressed = false;
 
                 while(!done){
                         SDL_Event event;
 
                         while(SDL_PollEvent(&event)){
-                                if(event.type == SDL_EVENT_QUIT){
-                                        done = true;
-                                }
+                                if(event.type == SDL_EVENT_QUIT) done = true;
+                                else if(event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
+                                        int mouse_x = event.button.x, mouse_y = event.button.y;
+                                        if(mouse_x >= button.x && 
+                                           mouse_x <= button.x + button.w && 
+                                           mouse_y >= button.y && 
+                                           mouse_y <= button.y + button.h) button_pressed = true;
+                                }else if(event.type == SDL_EVENT_MOUSE_BUTTON_UP) button_pressed = false;
                         }
+
+                        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+                        SDL_RenderClear(renderer);
+
+                        float mouse_x, mouse_y;
+                        SDL_GetMouseState(&mouse_x, &mouse_y);
+
+                        if(button_pressed) SDL_SetRenderDrawColor(renderer, 1, 31, 75, 255);
+                        else if(mouse_x >= button.x && 
+                                           mouse_x <= button.x + button.w && 
+                                           mouse_y >= button.y && 
+                                           mouse_y <= button.y + button.h) SDL_SetRenderDrawColor(renderer, 100, 151, 177, 255);
+                        else SDL_SetRenderDrawColor(renderer, 0, 91, 150, 255);
+
+                        SDL_RenderFillRect(renderer, &button);
+                        SDL_RenderPresent(renderer);
                 }
 
                 SDL_DestroyWindow(secondary_window);
-                SDL_DestroySurface(secondary_window_surface);
 
         }else if(pid > 0){
                 SDL_Init(SDL_INIT_VIDEO);
