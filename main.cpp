@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vector>
 #include <unistd.h>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -53,6 +54,41 @@ SDL_Surface* to_grayscale(SDL_Surface* src_image){
         return grayscale_image;
 }
 
+vector <int> getPixelsCountingByIntesity(SDL_Surface* src_image){
+        Uint8 *image_pixels = (Uint8*)src_image->pixels;
+        SDL_PixelFormat src_image_pixel_format = src_image->format;
+        const SDL_PixelFormatDetails *format_details = SDL_GetPixelFormatDetails(src_image_pixel_format);
+        Uint8 bytes_per_pixel = format_details->bytes_per_pixel;
+
+        vector <int> response(256, 0);
+
+        for(int i = 0; i < src_image->h; i++){
+                for(int j = 0; j < src_image->w; j++){
+                        Uint8* src = (Uint8*)src_image->pixels + i*src_image->pitch + j*bytes_per_pixel;
+
+                        const Uint8 color = src[0];
+
+                        response[color]++;
+                }
+        }
+
+        return response;
+}
+
+double get_mean_intensity_by_histogram(vector <int> &histogram){
+        double answer = 0.0;
+        long histogram_bits = 0;
+
+        for(int i = 0; i < (int)histogram.size(); i++){
+                answer += i*histogram[i];
+                histogram_bits += histogram[i];
+        }
+
+        answer /= histogram_bits;
+
+        return answer;
+}
+
 int main(int argc, char** argv){
         if(argc != 2){
                 cerr << "Número de argumentos inválido! Insira exatamente uma imagem." << endl;
@@ -78,6 +114,16 @@ int main(int argc, char** argv){
                 SDL_SaveBMP(output_image, "grayscale_image.bmp");
 
         } else cout << "Imagem já está em tons de cinza" << endl;
+
+        vector <int> histogram_values = getPixelsCountingByIntesity(input_image24);
+
+        double image_mean_intensity = get_mean_intensity_by_histogram(histogram_values);
+
+        cout << image_mean_intensity << endl;
+
+        if(image_mean_intensity < 256/3) cout << "Imagem clara" << endl;
+        else if(image_mean_intensity <= 2*256/3) cout << "Imagem média" << endl;
+        else cout << "Imagem escura" << endl;
 
         pid_t pid = fork();
 
@@ -146,6 +192,8 @@ int main(int argc, char** argv){
                         SDL_RenderFillRect(renderer, &button);
 
                         SDL_RenderTexture(renderer, text_texture, NULL, &text_rect);
+
+                        SDL_DestroyTexture(text_texture);
 
                         SDL_RenderPresent(renderer);
                 }
