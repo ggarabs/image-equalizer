@@ -14,7 +14,7 @@
 - [ ] Desvio padrão: Classificar o contraste da imagem como "alto", "médio" ou "baixo".
 - [x] Na janela secundária, deve haver um botão (desenhado com primitivas da SDL).
 - [ ] Ao clicar no botão, o programa deve equalizar o histograma da imagem, atualizando a imagem exibida na janela principal e o histograma na janela secundária.
-- [ ] O texto do botão deve mudar para refletir a ação (ex.: "Equalizado" / "Original")
+- [x] O texto do botão deve mudar para refletir a ação (ex.: "Equalizado" / "Original")
 - [x] O estado do botão deve refletir as ações do usuário (ex.: cor azul para estado "neutro", cor azul claro para estado "mouse em cima do botão", cor azul escuro para estado "botão clicado")
 - [ ] Ao pressionar a tecla S do teclado, o programa deve salvar a imagem atualmente exibida na janela principal em um arquivo chamado output_image.png.
 - [ ] Caso o arquivo output_image.png já exista, o programa deve sobrescrever o arquivo.
