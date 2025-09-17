@@ -4,6 +4,7 @@
 #include <SDL3/SDL_main.h>
 #include <SDL3_image/SDL_image.h>
 #include <SDL3/SDL_video.h>
+#include <SDL3_ttf/SDL_ttf.h>
 
 using namespace std;
 
@@ -82,20 +83,30 @@ int main(int argc, char** argv){
 
         if(pid == 0){
                 SDL_Init(SDL_INIT_VIDEO);
+                TTF_Init();
+
+                const char* button_texts[] = {"Equalizar", "Restaurar"};
+                bool mode = false;
 
                 SDL_Window* secondary_window = SDL_CreateWindow("Histograma", 500, 500, SDL_WINDOW_INPUT_FOCUS);
+                SDL_Renderer* renderer = SDL_CreateRenderer(secondary_window, NULL);
 
                 SDL_SetWindowPosition(secondary_window, SDL_WINDOWPOS_CENTERED-10, SDL_WINDOWPOS_CENTERED-10);
 
                 if(!secondary_window) cout << "Erro ao abrir janela secundária" << endl;
 
-                SDL_Renderer* renderer = SDL_CreateRenderer(secondary_window, NULL);
-
-
                 const SDL_FRect button = {210, 430, 110, 40};
+                const SDL_FRect text_rect = {220, 437, 90, 26};
 
-                bool done = false;
-                bool button_pressed = false;
+                TTF_Font *font = TTF_OpenFont("./fonts/BitcountGrid.ttf", 1000);
+                if(!font){
+                        cerr << "Erro ao carregar a fonte" << endl;
+                        return 1;
+                }
+
+                SDL_Color text_color = {255, 255, 255, 255};
+
+                bool done = false, button_pressed = false;
 
                 while(!done){
                         SDL_Event event;
@@ -107,7 +118,10 @@ int main(int argc, char** argv){
                                         if(mouse_x >= button.x && 
                                            mouse_x <= button.x + button.w && 
                                            mouse_y >= button.y && 
-                                           mouse_y <= button.y + button.h) button_pressed = true;
+                                           mouse_y <= button.y + button.h){
+                                                button_pressed = true;
+                                                mode = !mode;
+                                           }
                                 }else if(event.type == SDL_EVENT_MOUSE_BUTTON_UP) button_pressed = false;
                         }
 
@@ -124,7 +138,15 @@ int main(int argc, char** argv){
                                            mouse_y <= button.y + button.h) SDL_SetRenderDrawColor(renderer, 100, 151, 177, 255);
                         else SDL_SetRenderDrawColor(renderer, 0, 91, 150, 255);
 
+                        SDL_Color color_text = {255, 255, 255, 255};
+
+                        SDL_Surface *text_surface = TTF_RenderText_Solid(font, button_texts[mode] , 9*sizeof(char), text_color);
+                        SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+
                         SDL_RenderFillRect(renderer, &button);
+
+                        SDL_RenderTexture(renderer, text_texture, NULL, &text_rect);
+
                         SDL_RenderPresent(renderer);
                 }
 
