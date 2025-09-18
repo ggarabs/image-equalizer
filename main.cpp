@@ -113,129 +113,96 @@ int main(int argc, char** argv){
 
                 SDL_SaveBMP(output_image, "grayscale_image.bmp");
 
-        } else cout << "Imagem já está em tons de cinza" << endl;
+        } else 
+                cout << "Imagem já está em tons de cinza" << endl;
 
         vector <int> histogram_values = getPixelsCountingByIntesity(input_image24);
 
         double image_mean_intensity = get_mean_intensity_by_histogram(histogram_values);
 
-        cout << image_mean_intensity << endl;
-
         if(image_mean_intensity < 256/3) cout << "Imagem clara" << endl;
         else if(image_mean_intensity <= 2*256/3) cout << "Imagem média" << endl;
         else cout << "Imagem escura" << endl;
 
-        pid_t pid = fork();
+        SDL_Init(SDL_INIT_VIDEO);
+        TTF_Init();
 
-        if(pid == 0){
-                SDL_Init(SDL_INIT_VIDEO);
-                TTF_Init();
+        const char* button_texts[] = {"Equalizar", "Restaurar"};
+        bool mode = false;
 
-                const char* button_texts[] = {"Equalizar", "Restaurar"};
-                bool mode = false;
+        SDL_Window* secondary_window = SDL_CreateWindow("Histograma", 500, 500, SDL_WINDOW_INPUT_FOCUS);
+        SDL_Window* main_window = SDL_CreateWindow("Imagem original", input_image->w, input_image->h, SDL_WINDOW_BORDERLESS);
 
-                SDL_Window* secondary_window = SDL_CreateWindow("Histograma", 500, 500, SDL_WINDOW_INPUT_FOCUS);
-                SDL_Renderer* renderer = SDL_CreateRenderer(secondary_window, NULL);
+        SDL_SetWindowParent(secondary_window, main_window);
 
-                SDL_SetWindowPosition(secondary_window, SDL_WINDOWPOS_CENTERED-10, SDL_WINDOWPOS_CENTERED-10);
+        if(!main_window) cout << "Erro ao abrir a janela" << endl;
+        if(!secondary_window) cout << "Erro ao abrir janela secundária" << endl;
 
-                if(!secondary_window) cout << "Erro ao abrir janela secundária" << endl;
+        SDL_Renderer* renderer = SDL_CreateRenderer(secondary_window, NULL);
 
-                const SDL_FRect button = {210, 430, 110, 40};
-                const SDL_FRect text_rect = {220, 437, 90, 26};
+        SDL_Surface* window_surface = SDL_GetWindowSurface(main_window);
 
-                TTF_Font *font = TTF_OpenFont("./fonts/BitcountGrid.ttf", 1000);
-                if(!font){
-                        cerr << "Erro ao carregar a fonte" << endl;
-                        return 1;
-                }
+        SDL_SetWindowPosition(secondary_window, SDL_WINDOWPOS_CENTERED-10, SDL_WINDOWPOS_CENTERED-10);
+        SDL_SetWindowPosition(main_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 
-                SDL_Color text_color = {255, 255, 255, 255};
+        const SDL_FRect button = {210, 430, 110, 40};
+        const SDL_FRect text_rect = {220, 437, 90, 26};
 
-                bool done = false, button_pressed = false;
+        TTF_Font *font = TTF_OpenFont("./fonts/BitcountGrid.ttf", 1000);
+        if(!font){
+                cerr << "Erro ao carregar a fonte" << endl;
+                return 1;
+        }
 
-                while(!done){
-                        SDL_Event event;
+        SDL_Color text_color = {255, 255, 255, 255};
 
-                        while(SDL_PollEvent(&event)){
-                                if(event.type == SDL_EVENT_QUIT) done = true;
-                                else if(event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
-                                        int mouse_x = event.button.x, mouse_y = event.button.y;
-                                        if(mouse_x >= button.x && 
-                                           mouse_x <= button.x + button.w && 
-                                           mouse_y >= button.y && 
-                                           mouse_y <= button.y + button.h){
+        bool done = false, button_pressed = false;
+
+        while(!done){
+                SDL_Event event;
+
+                while(SDL_PollEvent(&event)){
+                        if(event.type == SDL_EVENT_QUIT) done = true;
+                        else if(event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
+                                int mouse_x = event.button.x, mouse_y = event.button.y;
+                                if(mouse_x >= button.x && 
+                                        mouse_x <= button.x + button.w && 
+                                        mouse_y >= button.y && 
+                                        mouse_y <= button.y + button.h){
                                                 button_pressed = true;
                                                 mode = !mode;
-                                           }
-                                }else if(event.type == SDL_EVENT_MOUSE_BUTTON_UP) button_pressed = false;
-                        }
-
-                        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-                        SDL_RenderClear(renderer);
-
-                        float mouse_x, mouse_y;
-                        SDL_GetMouseState(&mouse_x, &mouse_y);
-
-                        if(button_pressed) SDL_SetRenderDrawColor(renderer, 1, 31, 75, 255);
-                        else if(mouse_x >= button.x && 
-                                           mouse_x <= button.x + button.w && 
-                                           mouse_y >= button.y && 
-                                           mouse_y <= button.y + button.h) SDL_SetRenderDrawColor(renderer, 100, 151, 177, 255);
-                        else SDL_SetRenderDrawColor(renderer, 0, 91, 150, 255);
-
-                        SDL_Color color_text = {255, 255, 255, 255};
-
-                        SDL_Surface *text_surface = TTF_RenderText_Solid(font, button_texts[mode] , 9*sizeof(char), text_color);
-                        SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
-
-                        SDL_RenderFillRect(renderer, &button);
-
-                        SDL_RenderTexture(renderer, text_texture, NULL, &text_rect);
-
-                        SDL_DestroyTexture(text_texture);
-
-                        SDL_RenderPresent(renderer);
+                                        }
+                        }else if(event.type == SDL_EVENT_MOUSE_BUTTON_UP) button_pressed = false;
                 }
 
-                SDL_DestroyWindow(secondary_window);
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+                SDL_RenderClear(renderer);
 
-        }else if(pid > 0){
-                SDL_Init(SDL_INIT_VIDEO);
+                float mouse_x, mouse_y;
+                SDL_GetMouseState(&mouse_x, &mouse_y);
 
-                SDL_Window* main_window = SDL_CreateWindow("Imagem original", input_image->w, input_image->h, SDL_WINDOW_BORDERLESS);
+                if(button_pressed) SDL_SetRenderDrawColor(renderer, 1, 31, 75, 255);
+                else if(mouse_x >= button.x && 
+                                        mouse_x <= button.x + button.w && 
+                                        mouse_y >= button.y && 
+                                        mouse_y <= button.y + button.h) SDL_SetRenderDrawColor(renderer, 100, 151, 177, 255);
+                else SDL_SetRenderDrawColor(renderer, 0, 91, 150, 255);
 
-                SDL_SetWindowPosition(main_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+                SDL_Color color_text = {255, 255, 255, 255};
 
-                if(!main_window) cout << "Erro ao abrir a janela" << endl;
+                SDL_Surface *text_surface = TTF_RenderText_Solid(font, button_texts[mode] , 9*sizeof(char), text_color);
+                SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
 
-                SDL_Surface* window_surface = SDL_GetWindowSurface(main_window);
+                SDL_RenderFillRect(renderer, &button);
+                SDL_RenderTexture(renderer, text_texture, NULL, &text_rect);
 
-                if(!window_surface){
-                        cout << SDL_GetError() << endl;
-                }
+                SDL_DestroyTexture(text_texture);
+                SDL_BlitSurface(output_image, NULL, window_surface, NULL);
+                SDL_UpdateWindowSurface(main_window);
+                SDL_RenderPresent(renderer);
+        }
 
-                bool done = false;
-
-                while(!done){
-                        SDL_Event event;
-
-                        while(SDL_PollEvent(&event)){
-                                if(event.type == SDL_EVENT_QUIT){
-                                        done = true;
-                                }
-                        }
-
-                        SDL_BlitSurface(output_image, NULL, window_surface, NULL);
-
-                        SDL_UpdateWindowSurface(main_window);
-                }
-
-                SDL_DestroyWindow(main_window);
-                SDL_DestroySurface(window_surface);
-
-        }else perror("Falha na exibição da nova janela");
-
+        SDL_DestroyWindow(secondary_window);
         SDL_DestroySurface(input_image);
         SDL_DestroySurface(output_image);
         SDL_DestroySurface(input_image24);
