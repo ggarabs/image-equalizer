@@ -10,7 +10,7 @@
 - [ ] Janela secundária (filha da janela principal): Uma janela de tamanho fixo (definido por você), posicionada ao lado da janela principal. Deve exibir o histograma da imagem e um botão de operação.
 - [ ] Na janela secundária, o programa deve exibir o histograma da imagem.
 - [ ] O programa deve analisar o histograma e exibir as seguintes informações:
-- [ ] Média de intensidade: Classificar a imagem como "clara", "média" ou "escura".
+- [x] Média de intensidade: Classificar a imagem como "clara", "média" ou "escura".
 - [ ] Desvio padrão: Classificar o contraste da imagem como "alto", "médio" ou "baixo".
 - [x] Na janela secundária, deve haver um botão (desenhado com primitivas da SDL).
 - [ ] Ao clicar no botão, o programa deve equalizar o histograma da imagem, atualizando a imagem exibida na janela principal e o histograma na janela secundária.
