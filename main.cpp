@@ -89,6 +89,69 @@ double get_mean_intensity_by_histogram(vector <int> &histogram){
         return answer;
 }
 
+void detect_image_brightness(vector<int> &histogram_values) {
+        double image_mean_intensity = get_mean_intensity_by_histogram(histogram_values);
+
+        if(image_mean_intensity < 256/3) cout << "Imagem clara" << endl;
+        else if(image_mean_intensity <= 2*256/3) cout << "Imagem média" << endl;
+        else cout << "Imagem escura" << endl;
+}
+
+void render_histogram(SDL_Renderer *renderer, SDL_Window *window, const vector<int> &histogram_values) {
+        const float histogram_w = 512.0f;
+        const float histogram_h = 100.0f;
+
+        int window_w, window_h;
+        SDL_GetWindowSize(window, &window_w, &window_h);
+
+        const float x = (window_w - histogram_w) * 0.5f;
+        const float y = (window_h - histogram_h) * 0.5f;
+        const SDL_FRect histogram_area = {x, y, histogram_w, histogram_h};
+
+        SDL_SetRenderDrawColor(renderer, 255, 255, 225, 255);
+        SDL_RenderFillRect(renderer, &histogram_area);
+}
+
+SDL_FRect create_button_text(SDL_FRect button) {
+        float text_w = button.x * 3.0f / 5.0f;
+        float text_h = button.h * 3.0f / 5.0f;
+        float text_x = button.x + button.x / 5.0f;
+        float text_y = button.y + button.h / 5.0f;
+
+        return {text_x, text_y, text_w, text_h};
+}
+
+SDL_FRect create_button(SDL_Window *window) {
+        int secondary_window_w, secondary_window_h;
+        SDL_GetWindowSize(window, &secondary_window_w, &secondary_window_h);
+
+        float button_w = 250;
+        float button_h = 50;
+        float button_x = (secondary_window_w - button_w) * 0.5f;
+        float button_y = secondary_window_h * 4.0f / 5.0f;
+        
+        return {button_x, button_y, button_w, button_h};
+}
+
+void render_button(SDL_Window *window, SDL_Renderer *renderer, SDL_FRect &button, SDL_FRect &text_rect, const char* button_text, TTF_Font *font, SDL_Color text_color) {
+        int secondary_window_w, secondary_window_h;
+        SDL_GetWindowSize(window, &secondary_window_w, &secondary_window_h);
+
+        button.x = (secondary_window_w - button.w) * 0.5f;
+        button.y = secondary_window_h * 4.0f / 5.0f;
+        text_rect.x = button.x + button.w / 5.0f;
+        text_rect.y = button.y + button.h / 5.0f;
+        
+        SDL_Surface *text_surface = TTF_RenderText_Solid(font, button_text , 9*sizeof(char), text_color);
+        SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+        
+        SDL_RenderFillRect(renderer, &button);
+        SDL_RenderTexture(renderer, text_texture, NULL, &text_rect);
+
+        SDL_DestroyTexture(text_texture);
+        SDL_DestroySurface(text_surface);
+}
+
 int main(int argc, char** argv){
         if(argc != 2){
                 cerr << "Número de argumentos inválido! Insira exatamente uma imagem." << endl;
@@ -116,22 +179,13 @@ int main(int argc, char** argv){
         } else 
                 cout << "Imagem já está em tons de cinza" << endl;
 
-        vector <int> histogram_values = getPixelsCountingByIntesity(input_image24);
-
-        double image_mean_intensity = get_mean_intensity_by_histogram(histogram_values);
-
-        if(image_mean_intensity < 256/3) cout << "Imagem clara" << endl;
-        else if(image_mean_intensity <= 2*256/3) cout << "Imagem média" << endl;
-        else cout << "Imagem escura" << endl;
-
         SDL_Init(SDL_INIT_VIDEO);
         TTF_Init();
 
-        const char* button_texts[] = {"Equalizar", "Restaurar"};
-        bool mode = false;
+        int secondary_window_w = 750, secondary_window_h = 750;
 
-        SDL_Window* secondary_window = SDL_CreateWindow("Histograma", 500, 500, SDL_WINDOW_INPUT_FOCUS);
-        SDL_Window* main_window = SDL_CreateWindow("Imagem original", input_image->w, input_image->h, SDL_WINDOW_BORDERLESS);
+        SDL_Window* main_window = SDL_CreateWindow("Imagem original", input_image->w, input_image->h, SDL_WINDOW_RESIZABLE);
+        SDL_Window* secondary_window = SDL_CreateWindow("Histograma", secondary_window_w, secondary_window_h, SDL_WINDOW_RESIZABLE);
 
         SDL_SetWindowParent(secondary_window, main_window);
 
@@ -142,11 +196,13 @@ int main(int argc, char** argv){
 
         SDL_Surface* window_surface = SDL_GetWindowSurface(main_window);
 
-        SDL_SetWindowPosition(secondary_window, SDL_WINDOWPOS_CENTERED-10, SDL_WINDOWPOS_CENTERED-10);
         SDL_SetWindowPosition(main_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+        SDL_SetWindowPosition(secondary_window, SDL_WINDOWPOS_CENTERED-output_image->w/2, SDL_WINDOWPOS_CENTERED);
 
-        const SDL_FRect button = {210, 430, 110, 40};
-        const SDL_FRect text_rect = {220, 437, 90, 26};
+        SDL_FRect button = create_button(secondary_window);
+        SDL_FRect text_rect = create_button_text(button);
+
+        const vector<int> histogram_values = getPixelsCountingByIntesity(output_image);
 
         TTF_Font *font = TTF_OpenFont("./fonts/BitcountGrid.ttf", 1000);
         if(!font){
@@ -154,15 +210,25 @@ int main(int argc, char** argv){
                 return 1;
         }
 
-        SDL_Color text_color = {255, 255, 255, 255};
+        const Uint32 main_window_id = SDL_GetWindowID(main_window);
+        const Uint32 secondary_window_id = SDL_GetWindowID(secondary_window);
 
+        bool mode = false;
         bool done = false, button_pressed = false;
+        const char* button_texts[] = {"Equalizar", "Restaurar"};
+        
+        SDL_Color text_color = {255, 255, 255, 255};
 
         while(!done){
                 SDL_Event event;
 
                 while(SDL_PollEvent(&event)){
                         if(event.type == SDL_EVENT_QUIT) done = true;
+
+                        else if(event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED){
+                                if(event.window.windowID == secondary_window_id) SDL_DestroyWindow(secondary_window);
+                        }
+                        
                         else if(event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
                                 int mouse_x = event.button.x, mouse_y = event.button.y;
                                 if(mouse_x >= button.x && 
@@ -175,9 +241,6 @@ int main(int argc, char** argv){
                         }else if(event.type == SDL_EVENT_MOUSE_BUTTON_UP) button_pressed = false;
                 }
 
-                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-                SDL_RenderClear(renderer);
-
                 float mouse_x, mouse_y;
                 SDL_GetMouseState(&mouse_x, &mouse_y);
 
@@ -187,25 +250,27 @@ int main(int argc, char** argv){
                                         mouse_y >= button.y && 
                                         mouse_y <= button.y + button.h) SDL_SetRenderDrawColor(renderer, 100, 151, 177, 255);
                 else SDL_SetRenderDrawColor(renderer, 0, 91, 150, 255);
+                
+                render_button(secondary_window, renderer, button, text_rect, button_texts[mode], font, text_color);
+                render_histogram(renderer, secondary_window, histogram_values);
 
-                SDL_Color color_text = {255, 255, 255, 255};
-
-                SDL_Surface *text_surface = TTF_RenderText_Solid(font, button_texts[mode] , 9*sizeof(char), text_color);
-                SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
-
-                SDL_RenderFillRect(renderer, &button);
-                SDL_RenderTexture(renderer, text_texture, NULL, &text_rect);
-
-                SDL_DestroyTexture(text_texture);
                 SDL_BlitSurface(output_image, NULL, window_surface, NULL);
                 SDL_UpdateWindowSurface(main_window);
                 SDL_RenderPresent(renderer);
         }
 
+        TTF_CloseFont(font);
+        TTF_Quit();
+
+        SDL_DestroyWindow(main_window);
+        SDL_DestroyRenderer(renderer);
+
         SDL_DestroyWindow(secondary_window);
         SDL_DestroySurface(input_image);
         SDL_DestroySurface(output_image);
         SDL_DestroySurface(input_image24);
+        
+        SDL_Quit();
 
         return 0;
 }
