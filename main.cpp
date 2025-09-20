@@ -364,8 +364,8 @@ int main(int argc, char** argv) {
 
         int secondary_window_w = 1000, secondary_window_h = 1000;
 
-        SDL_Window* main_window = SDL_CreateWindow("Imagem original", input_image->w, input_image->h, SDL_WINDOW_RESIZABLE);
-        SDL_Window* secondary_window = SDL_CreateWindow("Histograma", secondary_window_w, secondary_window_h, SDL_WINDOW_RESIZABLE);
+        SDL_Window* main_window = SDL_CreateWindow("Imagem original", input_image->w, input_image->h, 0);
+        SDL_Window* secondary_window = SDL_CreateWindow("Histograma", secondary_window_w, secondary_window_h, 0);
 
         SDL_SetWindowParent(secondary_window, main_window);
 
