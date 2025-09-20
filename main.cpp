@@ -4,6 +4,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL_video.h>
+#include <SDL3/SDL_keycode.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #include <SDL3_image/SDL_image.h>
 
@@ -31,6 +32,7 @@ bool is_grayscale_image(SDL_Surface *image){
                         if(!(r == g && g == b)) return false;
                 }
         }
+
         return true;
 }
 
@@ -206,7 +208,7 @@ void render_button(SDL_Window *window, SDL_Renderer *renderer, SDL_FRect &button
         SDL_DestroySurface(text_surface);
 }
 
-int main(int argc, char** argv){
+int main(int argc, char** argv) {
         if(argc != 2){
                 cerr << "Número de argumentos inválido! Insira exatamente uma imagem." << endl;
                 return 1;
@@ -271,20 +273,20 @@ int main(int argc, char** argv){
         
         SDL_Color text_color = {255, 255, 255, 255};
 
-        while(!done){
+        while(!done) {
                 SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
                 SDL_RenderClear(renderer);
 
                 SDL_Event event;
 
                 while(SDL_PollEvent(&event)){
-                        if(event.type == SDL_EVENT_QUIT) done = true;
+                        if(event.type == SDL_EVENT_QUIT) 
+                                done = true;
 
                         else if(event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
                                 if(event.window.windowID == secondary_window_id) 
                                         SDL_DestroyWindow(secondary_window);
                         }
-                        
                         else if(event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
                                 int mouse_x = event.button.x, mouse_y = event.button.y;
                                 if(mouse_x >= button.x && 
@@ -294,7 +296,14 @@ int main(int argc, char** argv){
                                                 button_pressed = true;
                                                 mode = !mode;
                                         }
-                        }else if(event.type == SDL_EVENT_MOUSE_BUTTON_UP) button_pressed = false;
+                        } 
+                        else if(event.type == SDL_EVENT_MOUSE_BUTTON_UP) 
+                                button_pressed = false;
+
+                        else if (event.type == SDL_EVENT_KEY_DOWN) {
+                                if (event.key.key == SDLK_S)
+                                        SDL_SaveBMP(output_image, "output_image.png");
+                        }
                 }
 
                 float mouse_x, mouse_y;
