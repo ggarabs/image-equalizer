@@ -18,3 +18,15 @@
 - [x] O estado do botão deve refletir as ações do usuário (ex.: cor azul para estado "neutro", cor azul claro para estado "mouse em cima do botão", cor azul escuro para estado "botão clicado")
 - [x] Ao pressionar a tecla S do teclado, o programa deve salvar a imagem atualmente exibida na janela principal em um arquivo chamado output_image.png.
 - [x] Caso o arquivo output_image.png já exista, o programa deve sobrescrever o arquivo.
+
+### O que resta:
+- [] Carregar a imagem em PNG, JPG e BMP.
+- [] Acusar erro caso a imagem não seja carregada em algum desses formatos.
+- [] Verificar se a imagem está centralizada no monitor principal.
+- [] Posicionar a janela secundária ao lado da principal.
+- [] Exibir Média, Desvio Padrão, Luminosidade e Contraste da Imagem na janela secundária.
+- [] Verificar estruturas e possíveis vazamentos de memória.
+- [] Criar documentação.
+- [] Mudar fonte do botão.
+- [] Redimensionar a Janela secundária adequadamente.
+- [] Limpar o código da aplicação.
