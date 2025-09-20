@@ -396,8 +396,10 @@ int main(int argc, char** argv) {
                                 button_pressed = false;
 
                         else if (event.type == SDL_EVENT_KEY_DOWN) {
-                                if (event.key.key == SDLK_S)
-                                        SDL_SaveBMP(output_image, "output_image.png");
+                                if (event.key.key == SDLK_S){
+                                        if(mode) SDL_SaveBMP(equalized_image, "output_image.png");
+                                        else SDL_SaveBMP(output_image, "output_image.png");
+                                }
                         }
                 }
 
