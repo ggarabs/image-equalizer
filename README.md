@@ -11,7 +11,7 @@
 - [x] Na janela secundária, o programa deve exibir o histograma da imagem.
 - [ ] O programa deve analisar o histograma e exibir as seguintes informações:
 - [x] Média de intensidade: Classificar a imagem como "clara", "média" ou "escura".
-- [ ] Desvio padrão: Classificar o contraste da imagem como "alto", "médio" ou "baixo".
+- [x] Desvio padrão: Classificar o contraste da imagem como "alto", "médio" ou "baixo".
 - [x] Na janela secundária, deve haver um botão (desenhado com primitivas da SDL).
 - [ ] Ao clicar no botão, o programa deve equalizar o histograma da imagem, atualizando a imagem exibida na janela principal e o histograma na janela secundária.
 - [x] O texto do botão deve mudar para refletir a ação (ex.: "Equalizado" / "Original")
