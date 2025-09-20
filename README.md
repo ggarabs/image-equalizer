@@ -2,8 +2,8 @@
 
 ### Escopo:
 
-- [ ] O programa deve ser capaz de carregar imagens nos formatos mais comuns, como PNG, JPG e BMP, usando a biblioteca SDL_image.
-- [ ] Deve tratar possíveis problemas, como arquivo não encontrado ou arquivo que não seja um formato de imagem válido.
+- [x] O programa deve ser capaz de carregar imagens nos formatos mais comuns, como PNG, JPG e BMP, usando a biblioteca SDL_image.
+- [x] Deve tratar possíveis problemas, como arquivo não encontrado ou arquivo que não seja um formato de imagem válido.
 - [x] O programa precisa implementar uma função que verifica se a imagem carregada já está em escala de cinza ou se é colorida.
 - [x] Caso a imagem seja colorida, o programa deve converter a imagem para escala de cinza usando a seguinte fórmula: 𝑌 = 0.2125 ∗ 𝑅 + 0.7154 ∗ 𝐺 + 0.0721 ∗ 𝐵.
 - [x] Janela principal: Deve exibir a imagem que está sendo processada. O tamanho da janela deve se adaptar ao tamanho da imagem carregada e deve iniciar centralizada no monitor principal.

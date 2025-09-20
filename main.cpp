@@ -1,8 +1,13 @@
+#include <math.h>
+#include <unordered_set>
+#include <vector>
+#include <string>
 #include <iostream>
 #include <vector>
 #include <map>
 #include <unistd.h>
-#include <math.h>
+#include <algorithm>
+#include <filesystem>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL_video.h>
@@ -18,6 +23,29 @@ typedef struct Histogram {
         int total_bits;
         int max_value;
 } Histogram;
+
+bool file_exists(const char* fileName) {
+        return std::filesystem::exists(fileName);
+}
+
+bool supported_format(const char* fileName) {
+        // Got this list based on SDL_image supported formats
+        // Basically, SDL_image checks the file for each of these extensions
+        // See: https://github.com/libsdl-org/SDL_image/blob/main/src/IMG.c#L52
+
+        const unordered_set<string> supported_extensions = {
+                ".TGA", ".AVIF", ".CUR", ".ICO", ".BMP", ".GIF", ".JPG", ".JXL", ".LBM",
+                ".PCX", ".PNG", ".PNM", ".SVG", ".TIF", ".XCF", ".XPM", ".XV", ".WEBP", ".QOI"
+        };
+
+        std::filesystem::path image_path(fileName);
+        std::filesystem::path ext = image_path.extension();
+        string extension = ext.string();
+
+        transform(extension.begin(), extension.end(), extension.begin(), ::toupper);
+
+        return supported_extensions.count(extension) > 0;
+}
 
 bool is_grayscale_image(SDL_Surface *image){
         Uint8 *image_pixels = (Uint8*)image->pixels;
@@ -302,6 +330,16 @@ int main(int argc, char** argv) {
         }
         const char* source_code_filename = argv[1];
 
+        if (!file_exists(source_code_filename)){
+                cerr << "Arquivo não encontrado!" << endl;
+                return 1;
+        }
+
+        if (!supported_format(source_code_filename)){
+                cerr << "Formato de imagem não suportado!" << endl;
+                return 1;
+        }
+
         SDL_Surface *input_image;
         input_image = IMG_Load(source_code_filename);
 
@@ -360,7 +398,6 @@ int main(int argc, char** argv) {
                 return 1;
         }
 
-        const Uint32 main_window_id = SDL_GetWindowID(main_window);
         const Uint32 secondary_window_id = SDL_GetWindowID(secondary_window);
 
         bool mode = false, done = false, button_pressed = false;
