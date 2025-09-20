@@ -1,6 +1,7 @@
 #include <vector>
 #include <iostream>
 #include <unistd.h>
+#include <math.h>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL_video.h>
@@ -84,7 +85,7 @@ vector <int> get_pixels_counting_by_intensity(SDL_Surface* src_image){
         return response;
 }
 
-double get_mean_intensity_by_histogram(vector <int> &histogram){
+double get_mean_intensity_from_histogram(const vector <int> &histogram){
         double answer = 0.0;
         long histogram_bits = 0;
 
@@ -98,15 +99,37 @@ double get_mean_intensity_by_histogram(vector <int> &histogram){
         return answer;
 }
 
-void detect_image_brightness(vector<int> &histogram_values) {
-        double image_mean_intensity = get_mean_intensity_by_histogram(histogram_values);
+double get_standard_deviation_from_histogram(const vector <int> &histogram){
+        double answer = 0.0, mean = get_mean_intensity_from_histogram(histogram);
+        long histogram_bits = 0;
+
+        for(int i = 0; i < (int)histogram.size(); i++){
+                answer += histogram[i]*pow(i-mean, 2);
+                histogram_bits += histogram[i];
+        }
+
+        answer = sqrt(answer/histogram_bits);
+
+        return answer;
+}
+
+void detect_image_brightness(const vector<int> &histogram_values) {
+        double image_mean_intensity = get_mean_intensity_from_histogram(histogram_values);
 
         if(image_mean_intensity < 256/3) cout << "Imagem clara" << endl;
         else if(image_mean_intensity <= 2*256/3) cout << "Imagem média" << endl;
         else cout << "Imagem escura" << endl;
 }
 
-int get_max_intensity_ocurrence_by_histogram(const vector<int> &histogram_values) {
+void detect_image_contrast(const vector<int> &histogram_values){
+        double image_standard_deviation = get_standard_deviation_from_histogram(histogram_values);
+
+        if(image_standard_deviation <= 40) cout << "Baixo contraste" << endl;
+        else if(image_standard_deviation <= 80) cout << "Médio contraste" << endl;
+        else cout << "Alto contraste" << endl;
+}
+
+int get_max_intensity_ocurrence_from_histogram(const vector<int> &histogram_values) {
         int max_value = 0;
         for (int i = 0; i < (int) histogram_values.size(); i++) 
                 max_value = histogram_values[i] > max_value ? histogram_values[i] : max_value;
@@ -125,7 +148,7 @@ Histogram* create_image_histogram(SDL_Surface *image) {
 
         histogram->values = get_pixels_counting_by_intensity(image);
         histogram->total_bits = get_total_bits_from_histogram(histogram->values);
-        histogram->max_value = get_max_intensity_ocurrence_by_histogram(histogram->values);
+        histogram->max_value = get_max_intensity_ocurrence_from_histogram(histogram->values);
         histogram->area = {0, 0, 256.0f * 3, 256.0f * 2};
 
         return histogram;
@@ -258,6 +281,11 @@ int main(int argc, char** argv) {
         SDL_FRect text_rect = create_button_text(button);
         Histogram *histogram = create_image_histogram(output_image);
 
+        cout << get_mean_intensity_from_histogram(histogram->values) << endl;
+        cout << get_standard_deviation_from_histogram(histogram->values) << endl;
+        detect_image_brightness(histogram->values);
+        detect_image_contrast(histogram->values);
+
         TTF_Font *font = TTF_OpenFont("./fonts/BitcountGrid.ttf", 1000);
         if(!font){
                 cerr << "Erro ao carregar a fonte" << endl;
@@ -267,8 +295,7 @@ int main(int argc, char** argv) {
         const Uint32 main_window_id = SDL_GetWindowID(main_window);
         const Uint32 secondary_window_id = SDL_GetWindowID(secondary_window);
 
-        bool mode = false;
-        bool done = false, button_pressed = false;
+        bool mode = false, done = false, button_pressed = false;
         const char* button_texts[] = {"Equalizar", "Restaurar"};
         
         SDL_Color text_color = {255, 255, 255, 255};
