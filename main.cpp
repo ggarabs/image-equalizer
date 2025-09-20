@@ -1,5 +1,6 @@
-#include <vector>
 #include <iostream>
+#include <vector>
+#include <map>
 #include <unistd.h>
 #include <math.h>
 #include <SDL3/SDL.h>
@@ -188,6 +189,69 @@ void render_histogram(SDL_Renderer *renderer, SDL_Window *window, Histogram *his
         }
 }
 
+map<int, int> get_mapped_bits(Histogram* src_histogram){
+        long image_total_bits = src_histogram->total_bits;
+        const vector <int> intensity = src_histogram->values;
+
+        vector <double> occurence_probabilities;
+
+        for(int i = 0; i < (int) intensity.size(); i++) occurence_probabilities.push_back((double)intensity[i]/image_total_bits);
+
+        double current_intensity = 0.0;
+
+        map<int, int> mapping_function;
+
+        for(int i = 0; i < (int) intensity.size(); i++){
+                current_intensity += 255*occurence_probabilities[i];
+                mapping_function[i] = round(current_intensity);
+        }
+
+        return mapping_function;
+}
+
+Histogram* equalize_histogram(Histogram* src_histogram){
+        map<int, int> mapping_function = get_mapped_bits(src_histogram);
+        const vector <int> intensity = src_histogram->values;
+
+        int new_max_value = 0;
+
+        vector <int> equalized_intensity(256, 0);
+
+        for(int i = 0; i < (int) intensity.size(); i++){
+                equalized_intensity[mapping_function[i]] += intensity[i];
+                new_max_value = max(new_max_value, equalized_intensity[mapping_function[i]]);
+        }
+
+        Histogram* dest_histogram = new Histogram;
+
+        dest_histogram->area = src_histogram->area;
+        dest_histogram->values = equalized_intensity;
+        dest_histogram->max_value = new_max_value;
+        dest_histogram->total_bits = src_histogram->total_bits;
+
+        return dest_histogram;
+}
+
+SDL_Surface* equalize_image(SDL_Surface* src_image, map<int, int> mapping_function){
+        Uint8 *image_pixels = (Uint8*)src_image->pixels;
+        SDL_PixelFormat src_image_pixel_format = src_image->format;
+        const SDL_PixelFormatDetails *format_details = SDL_GetPixelFormatDetails(src_image_pixel_format);
+        Uint8 bytes_per_pixel = format_details->bytes_per_pixel;
+
+        SDL_Surface* equalized_image = SDL_CreateSurface(src_image->w, src_image->h, src_image->format);
+
+        for(int i = 0; i < equalized_image->h; i++){
+                for(int j = 0; j < equalized_image->w; j++){
+                        Uint8* src = (Uint8*)src_image->pixels + i*src_image->pitch + j*bytes_per_pixel;
+                        Uint8* dest = (Uint8*)equalized_image->pixels + i*equalized_image->pitch + j*bytes_per_pixel;
+
+                        dest[0] = dest[1] = dest[2] = mapping_function[src[0]];
+                }
+        }
+
+        return equalized_image;
+}
+
 SDL_FRect create_button_text(SDL_FRect button) {
         float text_w = button.x * 3.0f / 5.0f;
         float text_h = button.h * 3.0f / 5.0f;
@@ -247,7 +311,6 @@ int main(int argc, char** argv) {
         }
         
         SDL_Surface* input_image24 = SDL_ConvertSurface(input_image, SDL_PIXELFORMAT_RGB24);
-
         SDL_Surface* output_image = input_image;
 
         if(!is_grayscale_image(input_image)){
@@ -280,6 +343,11 @@ int main(int argc, char** argv) {
         SDL_FRect button = create_button(secondary_window);
         SDL_FRect text_rect = create_button_text(button);
         Histogram *histogram = create_image_histogram(output_image);
+        Histogram *equalized_histogram = equalize_histogram(histogram);
+
+        map<int, int> mapping_function = get_mapped_bits(histogram);
+
+        SDL_Surface* equalized_image = equalize_image(output_image, mapping_function);
 
         cout << get_mean_intensity_from_histogram(histogram->values) << endl;
         cout << get_standard_deviation_from_histogram(histogram->values) << endl;
@@ -344,12 +412,20 @@ int main(int argc, char** argv) {
                 else SDL_SetRenderDrawColor(renderer, 0, 91, 150, 255);
 
                 render_button(secondary_window, renderer, button, text_rect, button_texts[mode], font, text_color);
-                render_histogram(renderer, secondary_window, histogram);
 
-                SDL_BlitSurface(output_image, NULL, window_surface, NULL);
+                if(mode){
+                        render_histogram(renderer, secondary_window, equalized_histogram);
+                        SDL_BlitSurface(equalized_image, NULL, window_surface, NULL);
+                } else {
+                        render_histogram(renderer, secondary_window, histogram);
+                        SDL_BlitSurface(output_image, NULL, window_surface, NULL);
+                }
+
                 SDL_UpdateWindowSurface(main_window);
                 SDL_RenderPresent(renderer);
         }
+
+        delete equalized_histogram;
 
         TTF_CloseFont(font);
         TTF_Quit();
