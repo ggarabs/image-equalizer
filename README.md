@@ -28,5 +28,5 @@
 - [ ] Verificar estruturas e possíveis vazamentos de memória.
 - [ ] Criar documentação.
 - [ ] Mudar fonte do botão.
-- [ ] Redimensionar a Janela secundária adequadamente.
+- [x] Redimensionar a Janela secundária adequadamente.
 - [ ] Limpar o código da aplicação.
