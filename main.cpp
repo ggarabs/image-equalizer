@@ -209,10 +209,16 @@ void render_histogram(SDL_Renderer *renderer, SDL_Window *window, Histogram *his
         render_text(renderer, (window_w - title_w + 150) * 0.5f, y - 30, font, "Histograma", text_color);
 
         render_text(renderer, x - 150, y, font, "Intensidade:", text_color);
-        render_text(renderer, x - 150, y + 40, font, detect_image_brightness(histogram->values), text_color);
+        render_text(renderer, x - 150, y + 20, font, detect_image_brightness(histogram->values), text_color);
 
-        render_text(renderer, x - 150, y + 110, font, "Contraste:", text_color);
-        render_text(renderer, x - 150, y + 150, font, detect_image_contrast(histogram->values), text_color);
+        render_text(renderer, x - 150, y + 70, font, "Média: ", text_color);
+        render_text(renderer, x - 150, y + 90, font, to_string(get_mean_intensity_from_histogram(histogram->values)), text_color);
+
+        render_text(renderer, x - 150, y + 140, font, "Contraste:", text_color);
+        render_text(renderer, x - 150, y + 160, font, detect_image_contrast(histogram->values), text_color);
+
+        render_text(renderer, x - 150, y + 210, font, "Desvio Padrão: ", text_color);
+        render_text(renderer, x - 150, y + 230, font, to_string(get_standard_deviation_from_histogram(histogram->values)), text_color);
         
         SDL_RenderLine(renderer, x, y, x, y + histogram->area.h);
         SDL_RenderLine(renderer, x + histogram->area.w, y, x + histogram->area.w, y + histogram->area.h); 
@@ -403,11 +409,6 @@ int main(int argc, char** argv) {
         map<int, int> mapping_function = get_mapped_bits(histogram);
 
         SDL_Surface* equalized_image = equalize_image(grayscale_input_image, mapping_function);
-
-        cout << get_mean_intensity_from_histogram(histogram->values) << endl;
-        cout << get_standard_deviation_from_histogram(histogram->values) << endl;
-        detect_image_brightness(histogram->values);
-        detect_image_contrast(histogram->values);
 
         TTF_Font *font = TTF_OpenFont("./fonts/BitcountGrid.ttf", 1000);
         if(!font){
