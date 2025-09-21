@@ -9,7 +9,7 @@
 - [x] Janela principal: Deve exibir a imagem que está sendo processada. O tamanho da janela deve se adaptar ao tamanho da imagem carregada e deve iniciar centralizada no monitor principal.
 - [x] Janela secundária (filha da janela principal): Uma janela de tamanho fixo (definido por você), posicionada ao lado da janela principal. Deve exibir o histograma da imagem e um botão de operação.
 - [x] Na janela secundária, o programa deve exibir o histograma da imagem.
-- [ ] O programa deve analisar o histograma e exibir as seguintes informações:
+- [x] O programa deve analisar o histograma e exibir as seguintes informações:
 - [x] Média de intensidade: Classificar a imagem como "clara", "média" ou "escura".
 - [x] Desvio padrão: Classificar o contraste da imagem como "alto", "médio" ou "baixo".
 - [x] Na janela secundária, deve haver um botão (desenhado com primitivas da SDL).
@@ -20,11 +20,11 @@
 - [x] Caso o arquivo output_image.png já exista, o programa deve sobrescrever o arquivo.
 
 ### O que resta:
-- [ ] Carregar a imagem em PNG, JPG e BMP.
-- [ ] Acusar erro caso a imagem não seja carregada em algum desses formatos.
+- [x] Carregar a imagem em PNG, JPG e BMP.
+- [x] Acusar erro caso a imagem não seja carregada em algum desses formatos.
 - [ ] Verificar se a imagem está centralizada no monitor principal.
 - [ ] Posicionar a janela secundária ao lado da principal.
-- [ ] Exibir Média, Desvio Padrão, Luminosidade e Contraste da Imagem na janela secundária.
+- [x] Exibir Média, Desvio Padrão, Luminosidade e Contraste da Imagem na janela secundária.
 - [ ] Verificar estruturas e possíveis vazamentos de memória.
 - [ ] Criar documentação.
 - [ ] Mudar fonte do botão.
