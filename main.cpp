@@ -142,20 +142,20 @@ double get_standard_deviation_from_histogram(const vector <int> &histogram){
         return answer;
 }
 
-void detect_image_brightness(const vector<int> &histogram_values) {
+string detect_image_brightness(const vector<int> &histogram_values) {
         double image_mean_intensity = get_mean_intensity_from_histogram(histogram_values);
 
-        if(image_mean_intensity < 256/3) cout << "Imagem clara" << endl;
-        else if(image_mean_intensity <= 2*256/3) cout << "Imagem média" << endl;
-        else cout << "Imagem escura" << endl;
+        if(image_mean_intensity < 256/3) return "Clara";
+        else if(image_mean_intensity <= 2*256/3) return "Média";
+        else return "Escura";
 }
 
-void detect_image_contrast(const vector<int> &histogram_values){
+string detect_image_contrast(const vector<int> &histogram_values){
         double image_standard_deviation = get_standard_deviation_from_histogram(histogram_values);
 
-        if(image_standard_deviation <= 40) cout << "Baixo contraste" << endl;
-        else if(image_standard_deviation <= 80) cout << "Médio contraste" << endl;
-        else cout << "Alto contraste" << endl;
+        if(image_standard_deviation <= 40) return "Baixo";
+        else if(image_standard_deviation <= 80) return "Médio";
+        else return "Alto";
 }
 
 int get_max_intensity_ocurrence_from_histogram(const vector<int> &histogram_values) {
@@ -178,16 +178,27 @@ Histogram* create_image_histogram(SDL_Surface *image) {
         histogram->values = get_pixels_counting_by_intensity(image);
         histogram->total_bits = get_total_bits_from_histogram(histogram->values);
         histogram->max_value = get_max_intensity_ocurrence_from_histogram(histogram->values);
-        histogram->area = {0, 0, 256.0f * 3, 256.0f * 2};
+        histogram->area = {0, 0, 256.0f * 2, 256.0f * 1};
 
         return histogram;
 }
 
-void render_histogram(SDL_Renderer *renderer, SDL_Window *window, Histogram *histogram) {
+void render_text(SDL_Renderer *renderer, float x, float y, TTF_Font *font, string text, SDL_Color text_color) {
+        SDL_FRect text_area = {x, y, (int) text.size() * 10.0f, 24.0f};
+        SDL_Surface *text_surface = TTF_RenderText_Solid(font, text.c_str() , text.size(), text_color);
+        SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+        
+        SDL_RenderTexture(renderer, text_texture, NULL, &text_area);
+
+        SDL_DestroyTexture(text_texture);
+        SDL_DestroySurface(text_surface);
+}
+
+void render_histogram(SDL_Renderer *renderer, SDL_Window *window, Histogram *histogram, TTF_Font *font, SDL_Color text_color) {
         int window_w, window_h;
         SDL_GetWindowSize(window, &window_w, &window_h);
 
-        const float x = (window_w - histogram->area.w) * 0.5f;
+        const float x = (window_w - histogram->area.w + 150) * 0.5f;
         const float y = (window_h - histogram->area.h) * 0.5f;
         const SDL_FRect histogram_area = {x, y, histogram->area.w, histogram->area.h};
 
@@ -196,11 +207,21 @@ void render_histogram(SDL_Renderer *renderer, SDL_Window *window, Histogram *his
 
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
-        SDL_RenderLine(renderer, x, y, x, y + histogram->area.h);  // left line
-        SDL_RenderLine(renderer, x + histogram->area.w, y, x + histogram->area.w, y + histogram->area.h);  // right line
+        string title = "Histograma";
+        int title_w = (int) title.size() * 10.0f, title_h = 30;
+        render_text(renderer, (window_w - title_w + 150) * 0.5f, y - 30, font, "Histograma", text_color);
 
-        SDL_RenderLine(renderer, x, y + histogram->area.h, x + histogram->area.w, y + histogram->area.h);  // lower line
-        SDL_RenderLine(renderer, x, y, x + histogram->area.w, y);  // upper line
+        render_text(renderer, x - 150, y, font, "Intensidade:", text_color);
+        render_text(renderer, x - 150, y + 40, font, detect_image_brightness(histogram->values), text_color);
+
+        render_text(renderer, x - 150, y + 110, font, "Contraste:", text_color);
+        render_text(renderer, x - 150, y + 150, font, detect_image_contrast(histogram->values), text_color);
+        
+        SDL_RenderLine(renderer, x, y, x, y + histogram->area.h);
+        SDL_RenderLine(renderer, x + histogram->area.w, y, x + histogram->area.w, y + histogram->area.h); 
+
+        SDL_RenderLine(renderer, x, y + histogram->area.h, x + histogram->area.w, y + histogram->area.h);
+        SDL_RenderLine(renderer, x, y, x + histogram->area.w, y);
 
         float max_pixel_ration = (float) histogram->max_value / histogram->total_bits;
 
@@ -293,8 +314,8 @@ SDL_FRect create_button(SDL_Window *window) {
         int secondary_window_w, secondary_window_h;
         SDL_GetWindowSize(window, &secondary_window_w, &secondary_window_h);
 
-        float button_w = 250;
-        float button_h = 50;
+        float button_w = 200;
+        float button_h = 40;
         float button_x = (secondary_window_w - button_w) * 0.5f;
         float button_y = secondary_window_h * 4.0f / 5.0f;
         
@@ -362,7 +383,7 @@ int main(int argc, char** argv) {
         SDL_Init(SDL_INIT_VIDEO);
         TTF_Init();
 
-        int secondary_window_w = 1000, secondary_window_h = 1000;
+        int secondary_window_w = 740, secondary_window_h = 580;
 
         SDL_Window* main_window = SDL_CreateWindow("Imagem original", input_image->w, input_image->h, 0);
         SDL_Window* secondary_window = SDL_CreateWindow("Histograma", secondary_window_w, secondary_window_h, 0);
@@ -453,10 +474,10 @@ int main(int argc, char** argv) {
                 render_button(secondary_window, renderer, button, text_rect, button_texts[mode], font, text_color);
 
                 if(mode){
-                        render_histogram(renderer, secondary_window, equalized_histogram);
+                        render_histogram(renderer, secondary_window, equalized_histogram, font, text_color);
                         SDL_BlitSurface(equalized_image, NULL, window_surface, NULL);
                 } else {
-                        render_histogram(renderer, secondary_window, histogram);
+                        render_histogram(renderer, secondary_window, histogram, font, text_color);
                         SDL_BlitSurface(output_image, NULL, window_surface, NULL);
                 }
 
