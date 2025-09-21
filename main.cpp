@@ -367,13 +367,12 @@ int main(int argc, char** argv) {
         }
         
         SDL_Surface* input_image24 = SDL_ConvertSurface(input_image, SDL_PIXELFORMAT_RGB24);
-        SDL_Surface* output_image = input_image;
+        SDL_Surface* grayscale_input_image = input_image24;
 
-        if(!is_grayscale_image(input_image)){
-                output_image = to_grayscale(input_image24);
+        if(!is_grayscale_image(input_image24)){
+                grayscale_input_image = to_grayscale(input_image24);
 
-                SDL_SaveBMP(output_image, "grayscale_image.bmp");
-
+                IMG_SavePNG(grayscale_input_image, "./images/output/grayscale_input_image.png");
         } else 
                 cout << "Imagem já está em tons de cinza" << endl;
 
@@ -394,16 +393,16 @@ int main(int argc, char** argv) {
         SDL_Surface* window_surface = SDL_GetWindowSurface(main_window);
 
         SDL_SetWindowPosition(main_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-        SDL_SetWindowPosition(secondary_window, SDL_WINDOWPOS_CENTERED-output_image->w/2, SDL_WINDOWPOS_CENTERED);
+        SDL_SetWindowPosition(secondary_window, SDL_WINDOWPOS_CENTERED-grayscale_input_image->w/2, SDL_WINDOWPOS_CENTERED);
 
         SDL_FRect button = create_button(secondary_window);
         SDL_FRect text_rect = create_button_text(button);
-        Histogram *histogram = create_image_histogram(output_image);
+        Histogram *histogram = create_image_histogram(grayscale_input_image);
         Histogram *equalized_histogram = equalize_histogram(histogram);
 
         map<int, int> mapping_function = get_mapped_bits(histogram);
 
-        SDL_Surface* equalized_image = equalize_image(output_image, mapping_function);
+        SDL_Surface* equalized_image = equalize_image(grayscale_input_image, mapping_function);
 
         cout << get_mean_intensity_from_histogram(histogram->values) << endl;
         cout << get_standard_deviation_from_histogram(histogram->values) << endl;
@@ -452,8 +451,8 @@ int main(int argc, char** argv) {
 
                         else if (event.type == SDL_EVENT_KEY_DOWN) {
                                 if (event.key.key == SDLK_S){
-                                        if(mode) SDL_SaveBMP(equalized_image, "output_image.png");
-                                        else SDL_SaveBMP(output_image, "output_image.png");
+                                        if(mode) IMG_SavePNG(equalized_image, "./images/output/output_image.png");
+                                        else IMG_SavePNG(grayscale_input_image, "./images/output/output_image.png");
                                 }
                         }
                 }
@@ -475,7 +474,7 @@ int main(int argc, char** argv) {
                         SDL_BlitSurface(equalized_image, NULL, window_surface, NULL);
                 } else {
                         render_histogram(renderer, secondary_window, histogram, font, text_color);
-                        SDL_BlitSurface(output_image, NULL, window_surface, NULL);
+                        SDL_BlitSurface(grayscale_input_image, NULL, window_surface, NULL);
                 }
 
                 SDL_UpdateWindowSurface(main_window);
@@ -492,7 +491,7 @@ int main(int argc, char** argv) {
 
         SDL_DestroyWindow(secondary_window);
         SDL_DestroySurface(input_image);
-        SDL_DestroySurface(output_image);
+        SDL_DestroySurface(grayscale_input_image);
         SDL_DestroySurface(input_image24);
         
         SDL_Quit();
