@@ -33,18 +33,15 @@ bool supported_format(const char* fileName) {
         // Basically, SDL_image checks the file for each of these extensions
         // See: https://github.com/libsdl-org/SDL_image/blob/main/src/IMG.c#L52
 
-        const unordered_set<string> supported_extensions = {
-                ".TGA", ".AVIF", ".CUR", ".ICO", ".BMP", ".GIF", ".JPG", ".JXL", ".LBM",
-                ".PCX", ".PNG", ".PNM", ".SVG", ".TIF", ".XCF", ".XPM", ".XV", ".WEBP", ".QOI"
-        };
+        SDL_IOStream *stream = SDL_IOFromFile(fileName, "rb");
 
-        std::filesystem::path image_path(fileName);
-        std::filesystem::path ext = image_path.extension();
-        string extension = ext.string();
-
-        transform(extension.begin(), extension.end(), extension.begin(), ::toupper);
-
-        return supported_extensions.count(extension) > 0;
+        return IMG_isAVIF(stream) || IMG_isBMP(stream) || IMG_isCUR(stream) || 
+               IMG_isICO(stream) || IMG_isGIF(stream) || IMG_isJPG(stream) || 
+               IMG_isJXL(stream) || IMG_isLBM(stream) || IMG_isPCX(stream) || 
+               IMG_isPNG(stream) || IMG_isPNM(stream) || IMG_isSVG(stream) ||
+               IMG_isTIF(stream) || IMG_isXCF(stream) || IMG_isXPM(stream) ||
+               IMG_isXCF(stream) || IMG_isXPM(stream) || IMG_isXV(stream) ||
+               IMG_isWEBP(stream) || IMG_isQOI(stream);
 }
 
 bool is_grayscale_image(SDL_Surface *image){
