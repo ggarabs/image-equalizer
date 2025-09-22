@@ -44,6 +44,17 @@ bool supported_format(const char* fileName) {
                IMG_isWEBP(stream) || IMG_isQOI(stream);
 }
 
+SDL_Rect get_main_display_bounds(SDL_Window* window){
+        int displayIndex = SDL_GetDisplayForWindow(window);
+        SDL_Rect display_bounds;
+        if(!SDL_GetDisplayBounds(displayIndex, &display_bounds)){
+                cerr << "Erro ao obter dimensões do monitor principal" << endl;
+                exit(1);
+        }
+
+        return display_bounds;
+}
+
 bool is_grayscale_image(SDL_Surface *image){
         Uint8 *image_pixels = (Uint8*)image->pixels;
         SDL_PixelFormat image_pixel_format = image->format;
@@ -395,11 +406,15 @@ int main(int argc, char** argv) {
         if(!main_window) cout << "Erro ao abrir a janela" << endl;
         if(!secondary_window) cout << "Erro ao abrir janela secundária" << endl;
 
+        SDL_Rect display_bounds = get_main_display_bounds(main_window);
+
+        pair<int, int> main_window_position = { display_bounds.w/2 - input_image->w/2, display_bounds.h/2 - input_image->h/2 };
+        pair<int, int> secondary_window_position = { display_bounds.w/2 + input_image->w/2 , display_bounds.h/2 - secondary_window_h/2 + 36}; // 36 é a largura da borda da janela
+        SDL_SetWindowPosition(main_window, main_window_position.first, main_window_position.second);
+        SDL_SetWindowPosition(secondary_window, secondary_window_position.first, secondary_window_position.second);
+
         SDL_Renderer* renderer = SDL_CreateRenderer(secondary_window, NULL);
         SDL_Surface* window_surface = SDL_GetWindowSurface(main_window);
-
-        SDL_SetWindowPosition(main_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-        SDL_SetWindowPosition(secondary_window, SDL_WINDOWPOS_CENTERED-grayscale_input_image->w/2, SDL_WINDOWPOS_CENTERED);
 
         SDL_FRect button = create_button(secondary_window);
         SDL_FRect text_rect = create_button_text(button);
