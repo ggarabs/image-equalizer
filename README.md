@@ -20,10 +20,11 @@
 - [x] Caso o arquivo output_image.png já exista, o programa deve sobrescrever o arquivo.
 
 ### O que resta:
+
 - [x] Carregar a imagem em PNG, JPG e BMP.
 - [x] Acusar erro caso a imagem não seja carregada em algum desses formatos.
-- [ ] Verificar se a imagem está centralizada no monitor principal.
-- [ ] Posicionar a janela secundária ao lado da principal.
+- [x] Verificar se a imagem está centralizada no monitor principal.
+- [x] Posicionar a janela secundária ao lado da principal.
 - [x] Exibir Média, Desvio Padrão, Luminosidade e Contraste da Imagem na janela secundária.
 - [ ] Verificar estruturas e possíveis vazamentos de memória.
 - [ ] Criar documentação.
