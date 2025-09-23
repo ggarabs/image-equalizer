@@ -503,13 +503,16 @@ int main(int argc, char** argv) {
                                         SDL_DestroyWindow(secondary_window);
                                         secondary_window = NULL;
                                 } else {
+
+                                        done = true;
+
+                                        if(secondary_window){
+                                                SDL_DestroyWindow(secondary_window);
+                                                secondary_window = NULL;
+                                        }
+
                                         SDL_DestroyWindow(main_window);
                                         main_window = NULL;
-
-                                        SDL_DestroyWindow(secondary_window);
-                                        secondary_window = NULL;
-                                        
-                                        done = true;
                                 }
                         }
                         else if(event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
