@@ -15,6 +15,10 @@
 #include <SDL3_ttf/SDL_ttf.h>
 #include <SDL3_image/SDL_image.h>
 
+#define MULT_FACTOR_RED 0.2125
+#define MULT_FACTOR_GREEN 0.7154
+#define MULT_FACTOR_BLUE 0.0721
+
 using namespace std;
 
 typedef struct Histogram {
@@ -35,21 +39,31 @@ bool supported_format(const char* fileName) {
 
         SDL_IOStream *stream = SDL_IOFromFile(fileName, "rb");
 
-        return IMG_isAVIF(stream) || IMG_isBMP(stream) || IMG_isCUR(stream) || 
+        if(!stream){
+                cerr << "Erro ao abrir o binário da imagem" << endl;
+                return 0;
+        }
+
+        bool result = IMG_isAVIF(stream) || IMG_isBMP(stream) || IMG_isCUR(stream) || 
                IMG_isICO(stream) || IMG_isGIF(stream) || IMG_isJPG(stream) || 
                IMG_isJXL(stream) || IMG_isLBM(stream) || IMG_isPCX(stream) || 
                IMG_isPNG(stream) || IMG_isPNM(stream) || IMG_isSVG(stream) ||
                IMG_isTIF(stream) || IMG_isXCF(stream) || IMG_isXPM(stream) ||
                IMG_isXCF(stream) || IMG_isXPM(stream) || IMG_isXV(stream) ||
                IMG_isWEBP(stream) || IMG_isQOI(stream);
+
+        SDL_CloseIO(stream);
+
+        return result;
 }
 
 SDL_Rect get_main_display_bounds(SDL_Window* window){
         int displayIndex = SDL_GetDisplayForWindow(window);
         SDL_Rect display_bounds;
+
         if(!SDL_GetDisplayBounds(displayIndex, &display_bounds)){
                 cerr << "Erro ao obter dimensões do monitor principal" << endl;
-                exit(1);
+                return {-1, -1, -1, -1};
         }
 
         return display_bounds;
@@ -60,12 +74,18 @@ bool is_grayscale_image(SDL_Surface *image){
         SDL_PixelFormat image_pixel_format = image->format;
         const SDL_PixelFormatDetails *format_details = SDL_GetPixelFormatDetails(image_pixel_format);
         Uint8 bytes_per_pixel = format_details->bytes_per_pixel;
+        SDL_Palette *palette = SDL_GetSurfacePalette(image);
 
         for(int i = 0; i < image->h; i++){
                 for(int j = 0; j < image->w; j++){
                         Uint8* src = (Uint8*)image_pixels + i*image->pitch + j*bytes_per_pixel;
 
-                        Uint8 r = src[0], g = src[1], b = src[2];
+                        Uint32 pixel_value = 0;
+
+                        memcpy(&pixel_value, src, bytes_per_pixel);
+
+                        Uint8 r, g, b;
+                        SDL_GetRGB(pixel_value, format_details, palette, &r, &g, &b);
 
                         if(!(r == g && g == b)) return false;
                 }
@@ -79,11 +99,10 @@ SDL_Surface* to_grayscale(SDL_Surface* src_image){
         SDL_PixelFormat src_image_pixel_format = src_image->format;
         const SDL_PixelFormatDetails *format_details = SDL_GetPixelFormatDetails(src_image_pixel_format);
         Uint8 bytes_per_pixel = format_details->bytes_per_pixel;
+        SDL_Palette *palette = SDL_GetSurfacePalette(src_image);
 
         SDL_Surface *grayscale_image = SDL_CreateSurface(src_image->w, src_image->h, src_image_pixel_format);
-
         Uint8 *output_pixels = (Uint8*)grayscale_image->pixels;
-
         SDL_PixelFormat grayscale_image_pixel_format = grayscale_image->format;
         const SDL_PixelFormatDetails *output_format_details = SDL_GetPixelFormatDetails(grayscale_image_pixel_format);
 
@@ -92,9 +111,27 @@ SDL_Surface* to_grayscale(SDL_Surface* src_image){
                         Uint8* src = (Uint8*)src_image->pixels + i*src_image->pitch + j*bytes_per_pixel;
                         Uint8* dst = (Uint8*)grayscale_image->pixels + i*grayscale_image->pitch + j*bytes_per_pixel;
 
-                        const Uint8 color = 0.2125*src[0] + 0.7154*src[1] + 0.0721*src[2];
+                        Uint32 pixel_value = 0;
 
-                        dst[0] = dst[1] = dst[2] = color;
+                        memcpy(&pixel_value, src, bytes_per_pixel);
+
+                        Uint8 r, g, b, a, color;
+
+                        Uint32 output_pixel_value;
+
+                        if(bytes_per_pixel == 4){
+                                SDL_GetRGBA(pixel_value, format_details, palette, &r, &g, &b, &a);
+                                color = MULT_FACTOR_RED*r + MULT_FACTOR_GREEN*g + MULT_FACTOR_BLUE*b;
+
+                                output_pixel_value = SDL_MapRGBA(output_format_details, palette, color, color, color, a);
+                        }else{
+                                SDL_GetRGB(pixel_value, format_details, palette, &r, &g, &b);
+                                color = MULT_FACTOR_RED*r + MULT_FACTOR_GREEN*g + MULT_FACTOR_BLUE*b;
+
+                                output_pixel_value = SDL_MapRGB(output_format_details, palette, color, color, color);
+                        }
+                        
+                        memcpy(dst, &output_pixel_value, bytes_per_pixel);
                 }
         }
 
@@ -106,14 +143,21 @@ vector <int> get_pixels_counting_by_intensity(SDL_Surface* src_image){
         SDL_PixelFormat src_image_pixel_format = src_image->format;
         const SDL_PixelFormatDetails *format_details = SDL_GetPixelFormatDetails(src_image_pixel_format);
         Uint8 bytes_per_pixel = format_details->bytes_per_pixel;
+        SDL_Palette *palette = SDL_GetSurfacePalette(src_image);
 
         vector <int> response(256, 0);
 
         for(int i = 0; i < src_image->h; i++){
                 for(int j = 0; j < src_image->w; j++){
                         Uint8* src = (Uint8*)src_image->pixels + i*src_image->pitch + j*bytes_per_pixel;
+                        Uint32 pixel_value = 0;
 
-                        const Uint8 color = src[0];
+                        memcpy(&pixel_value, src, bytes_per_pixel);
+
+                        Uint8 r, g, b;
+                        SDL_GetRGB(pixel_value, format_details, palette, &r, &g, &b);
+
+                        const Uint8 color = r;
 
                         response[color]++;
                 }
@@ -122,61 +166,58 @@ vector <int> get_pixels_counting_by_intensity(SDL_Surface* src_image){
         return response;
 }
 
-double get_mean_intensity_from_histogram(const vector <int> &histogram){
+double get_mean_intensity_from_histogram(const Histogram* histogram){
         double answer = 0.0;
-        long histogram_bits = 0;
+        const vector <int>& values = histogram->values;
 
-        for(int i = 0; i < (int)histogram.size(); i++){
-                answer += i*histogram[i];
-                histogram_bits += histogram[i];
-        }
+        for(int i = 0; i < (int)values.size(); i++) answer += i*values[i];
 
-        answer /= histogram_bits;
+        answer /= histogram->total_bits;
 
         return answer;
 }
 
-double get_standard_deviation_from_histogram(const vector <int> &histogram){
+double get_standard_deviation_from_histogram(const Histogram* histogram){
         double answer = 0.0, mean = get_mean_intensity_from_histogram(histogram);
-        long histogram_bits = 0;
+        const vector<int>& values = histogram->values;
+        long total_bits = histogram->total_bits;
 
-        for(int i = 0; i < (int)histogram.size(); i++){
-                answer += histogram[i]*pow(i-mean, 2);
-                histogram_bits += histogram[i];
-        }
+        for(int i = 0; i < (int)values.size(); i++) answer += values[i]*(i-mean)*(i-mean);
 
-        answer = sqrt(answer/histogram_bits);
+        answer = sqrt(answer/total_bits);
 
         return answer;
 }
 
-string detect_image_brightness(const vector<int> &histogram_values) {
-        double image_mean_intensity = get_mean_intensity_from_histogram(histogram_values);
+string detect_image_brightness(const Histogram* histogram) {
+        double image_mean_intensity = get_mean_intensity_from_histogram(histogram);
 
         if(image_mean_intensity < 256/3) return "Clara";
         else if(image_mean_intensity <= 2*256/3) return "Média";
         else return "Escura";
 }
 
-string detect_image_contrast(const vector<int> &histogram_values){
-        double image_standard_deviation = get_standard_deviation_from_histogram(histogram_values);
+string detect_image_contrast(const Histogram* histogram){
+        double image_standard_deviation = get_standard_deviation_from_histogram(histogram);
 
         if(image_standard_deviation <= 40) return "Baixo";
         else if(image_standard_deviation <= 80) return "Médio";
         else return "Alto";
 }
 
-int get_max_intensity_ocurrence_from_histogram(const vector<int> &histogram_values) {
+int get_max_intensity_ocurrence_from_histogram(const Histogram* histogram) {
         int max_value = 0;
-        for (int i = 0; i < (int) histogram_values.size(); i++) 
-                max_value = histogram_values[i] > max_value ? histogram_values[i] : max_value;
+        const vector <int>& values = histogram->values;
+        for (int i = 0; i < (int) values.size(); i++)
+                max_value = max(max_value, values[i]);
         return max_value;
 }
 
-int get_total_bits_from_histogram(const vector<int> &histogram_values) {
+int get_total_bits_from_histogram(const Histogram* histogram) {
         int total_bits = 0;
-        for (int i = 0; i < (int) histogram_values.size(); i++) 
-                total_bits += histogram_values[i];
+        const vector <int>& values = histogram->values;
+        for (int i = 0; i < (int) values.size(); i++)
+                total_bits += values[i];
         return total_bits;
 }
 
@@ -184,15 +225,15 @@ Histogram* create_image_histogram(SDL_Surface *image) {
         Histogram *histogram = new Histogram;
 
         histogram->values = get_pixels_counting_by_intensity(image);
-        histogram->total_bits = get_total_bits_from_histogram(histogram->values);
-        histogram->max_value = get_max_intensity_ocurrence_from_histogram(histogram->values);
-        histogram->area = {0, 0, 256.0f * 2, 256.0f * 1};
+        histogram->total_bits = get_total_bits_from_histogram(histogram);
+        histogram->max_value = get_max_intensity_ocurrence_from_histogram(histogram);
+        histogram->area = {0, 0, 256.0 * 2, 256.0};
 
         return histogram;
 }
 
 void render_text(SDL_Renderer *renderer, float x, float y, TTF_Font *font, string text, SDL_Color text_color) {
-        SDL_FRect text_area = {x, y, (int) text.size() * 10.0f, 24.0f};
+        SDL_FRect text_area = {x, y, (int) text.size() * 10.0f, 24.0};
         SDL_Surface *text_surface = TTF_RenderText_Solid(font, text.c_str() , text.size(), text_color);
         SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
         
@@ -220,16 +261,16 @@ void render_histogram(SDL_Renderer *renderer, SDL_Window *window, Histogram *his
         render_text(renderer, (window_w - title_w + 150) * 0.5f, y - 30, font, "Histograma", text_color);
 
         render_text(renderer, x - 150, y, font, "Intensidade:", text_color);
-        render_text(renderer, x - 150, y + 20, font, detect_image_brightness(histogram->values), text_color);
+        render_text(renderer, x - 150, y + 20, font, detect_image_brightness(histogram), text_color);
 
         render_text(renderer, x - 150, y + 70, font, "Média: ", text_color);
-        render_text(renderer, x - 150, y + 90, font, to_string(get_mean_intensity_from_histogram(histogram->values)), text_color);
+        render_text(renderer, x - 150, y + 90, font, to_string(get_mean_intensity_from_histogram(histogram)), text_color);
 
         render_text(renderer, x - 150, y + 140, font, "Contraste:", text_color);
-        render_text(renderer, x - 150, y + 160, font, detect_image_contrast(histogram->values), text_color);
+        render_text(renderer, x - 150, y + 160, font, detect_image_contrast(histogram), text_color);
 
         render_text(renderer, x - 150, y + 210, font, "Desvio Padrão: ", text_color);
-        render_text(renderer, x - 150, y + 230, font, to_string(get_standard_deviation_from_histogram(histogram->values)), text_color);
+        render_text(renderer, x - 150, y + 230, font, to_string(get_standard_deviation_from_histogram(histogram)), text_color);
         
         SDL_RenderLine(renderer, x, y, x, y + histogram->area.h);
         SDL_RenderLine(renderer, x + histogram->area.w, y, x + histogram->area.w, y + histogram->area.h); 
@@ -254,7 +295,7 @@ void render_histogram(SDL_Renderer *renderer, SDL_Window *window, Histogram *his
 
 map<int, int> get_mapped_bits(Histogram* src_histogram){
         long image_total_bits = src_histogram->total_bits;
-        const vector <int> intensity = src_histogram->values;
+        const vector <int>& intensity = src_histogram->values;
 
         vector <double> occurence_probabilities;
 
@@ -265,7 +306,7 @@ map<int, int> get_mapped_bits(Histogram* src_histogram){
         map<int, int> mapping_function;
 
         for(int i = 0; i < (int) intensity.size(); i++){
-                current_intensity += 255*occurence_probabilities[i];
+                current_intensity += 255.0*occurence_probabilities[i];
                 mapping_function[i] = round(current_intensity);
         }
 
@@ -274,7 +315,7 @@ map<int, int> get_mapped_bits(Histogram* src_histogram){
 
 Histogram* equalize_histogram(Histogram* src_histogram){
         map<int, int> mapping_function = get_mapped_bits(src_histogram);
-        const vector <int> intensity = src_histogram->values;
+        const vector <int> &intensity = src_histogram->values;
 
         int new_max_value = 0;
 
@@ -309,6 +350,8 @@ SDL_Surface* equalize_image(SDL_Surface* src_image, map<int, int> mapping_functi
                         Uint8* dest = (Uint8*)equalized_image->pixels + i*equalized_image->pitch + j*bytes_per_pixel;
 
                         dest[0] = dest[1] = dest[2] = mapping_function[src[0]];
+
+                        if(bytes_per_pixel == 4) dest[3] = src[3];
                 }
         }
 
@@ -348,7 +391,7 @@ void render_button(SDL_Window *window, SDL_Renderer *renderer, SDL_FRect &button
         text_rect.x = button.x + button.w / 5.0f;
         text_rect.y = button.y + button.h / 5.0f;
         
-        SDL_Surface *text_surface = TTF_RenderText_Solid(font, button_text , 9*sizeof(char), text_color);
+        SDL_Surface *text_surface = TTF_RenderText_Solid(font, button_text , strlen(button_text), text_color);
         SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
         
         SDL_RenderFillRect(renderer, &button);
@@ -408,6 +451,14 @@ int main(int argc, char** argv) {
 
         SDL_Rect display_bounds = get_main_display_bounds(main_window);
 
+        if(display_bounds.h == -1 && display_bounds.w == -1 && display_bounds.x == -1 && display_bounds.y == -1){
+                SDL_DestroyWindow(main_window);
+                main_window = NULL;
+                SDL_DestroyWindow(secondary_window);
+                secondary_window = NULL;
+                return 1;
+        }
+
         pair<int, int> main_window_position = { display_bounds.w/2 - input_image->w/2, display_bounds.h/2 - input_image->h/2 };
         pair<int, int> secondary_window_position = { display_bounds.w/2 + input_image->w/2 , display_bounds.h/2 - secondary_window_h/2 + 36}; // 36 é a largura da borda da janela
         SDL_SetWindowPosition(main_window, main_window_position.first, main_window_position.second);
@@ -447,10 +498,19 @@ int main(int argc, char** argv) {
                 while(SDL_PollEvent(&event)){
                         if(event.type == SDL_EVENT_QUIT) 
                                 done = true;
-
                         else if(event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
-                                if(event.window.windowID == secondary_window_id) 
+                                if(event.window.windowID == secondary_window_id){
                                         SDL_DestroyWindow(secondary_window);
+                                        secondary_window = NULL;
+                                } else {
+                                        SDL_DestroyWindow(main_window);
+                                        main_window = NULL;
+
+                                        SDL_DestroyWindow(secondary_window);
+                                        secondary_window = NULL;
+                                        
+                                        done = true;
+                                }
                         }
                         else if(event.type == SDL_EVENT_MOUSE_BUTTON_DOWN){
                                 int mouse_x = event.button.x, mouse_y = event.button.y;
@@ -498,16 +558,16 @@ int main(int argc, char** argv) {
         }
 
         delete equalized_histogram;
+        delete histogram;
 
         TTF_CloseFont(font);
         TTF_Quit();
 
-        SDL_DestroyWindow(main_window);
         SDL_DestroyRenderer(renderer);
 
-        SDL_DestroyWindow(secondary_window);
+        SDL_DestroySurface(equalized_image);
+        if(grayscale_input_image != input_image24) SDL_DestroySurface(grayscale_input_image);
         SDL_DestroySurface(input_image);
-        SDL_DestroySurface(grayscale_input_image);
         SDL_DestroySurface(input_image24);
         
         SDL_Quit();
